@@ -5,11 +5,13 @@ namespace SmartHome.Core.Services;
 
 public class DeduplicationStore : IDeduplicationStore
 {
+    // Key: EventId, Value: Processed Timestamp
     private readonly ConcurrentDictionary<string, DateTimeOffset> _processedEvents = new();
-    private readonly TimeSpan _ttl = TimeSpan.FromMinutes(10);
+    private readonly TimeSpan _ttl = TimeSpan.FromMinutes(10); // Keep IDs for 10 mins
 
     public DeduplicationStore()
     {
+        // Simple background cleanup (fire and forget for demo)
         Task.Run(CleanupLoop);
     }
 
@@ -41,3 +43,4 @@ public class DeduplicationStore : IDeduplicationStore
         }
     }
 }
+

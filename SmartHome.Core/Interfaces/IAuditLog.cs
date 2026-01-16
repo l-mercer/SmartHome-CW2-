@@ -6,4 +6,3 @@ public interface IAuditLog
     List<string> GetRecentLogs(int count);
 }
 
-

@@ -17,12 +17,14 @@ public class AuditLog : IAuditLog
         {
             _memoryLog.Add(logEntry);
             
+            // Append to file
             try
             {
                 File.AppendAllText(_filePath, logEntry + Environment.NewLine);
             }
             catch
             {
+                // Ignore file errors for demo reliability
             }
         }
     }
@@ -35,3 +37,4 @@ public class AuditLog : IAuditLog
         }
     }
 }
+

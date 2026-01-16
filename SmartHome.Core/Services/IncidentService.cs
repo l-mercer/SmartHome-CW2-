@@ -16,10 +16,12 @@ public class IncidentService
 
     public Incident CreateOrUpdateIncident(List<SensorEvent> evidence, double confidenceScore, IncidentType type, string idempotencyKey)
     {
+        // 1. Idempotency Check / Retrieval
         var incident = _repository.GetByIdempotencyKey(idempotencyKey);
         
         if (incident == null)
         {
+            // Create new Incident
             incident = new Incident
             {
                 Type = type,
@@ -35,23 +37,32 @@ public class IncidentService
         }
         else
         {
+            // Update existing incident if we have better info
             _auditLog.Append("IncidentDedup", $"Updating existing incident for key {idempotencyKey}", incident.IncidentId);
             
+            // Merge evidence (simple append)
             incident.Evidence.AddRange(evidence.Where(e => !incident.Evidence.Any(existing => existing.EventId == e.EventId)));
 
+            // Update score if higher
             if (confidenceScore > incident.ConfidenceScore)
             {
                 incident.ConfidenceScore = confidenceScore;
             }
 
+            // Update state if we reached confirmation
             if (confidenceScore >= 1.0 && incident.State != IncidentState.Confirmed && incident.State != IncidentState.Notified && incident.State != IncidentState.Resolved)
             {
+                // Transition logic could be used, or direct update if we are the authority
+                // Let's use TransitionState to be safe, or just set it if we are sure?
+                // But TransitionState checks validity.
+                // Suspected -> Confirmed is valid.
                 try 
                 {
                      TransitionState(incident.IncidentId, IncidentState.Confirmed);
                 }
                 catch
                 {
+                    // Ignore if already past that state
                 }
             }
             
@@ -70,11 +81,12 @@ public class IncidentService
             throw new KeyNotFoundException($"Incident {incidentId} not found");
         }
 
+        // State Machine Guard
         if (!IsValidTransition(incident.State, newState))
         {
             var msg = $"Invalid state transition from {incident.State} to {newState}";
             _auditLog.Append("StateTransitionFailed", msg, incidentId);
-            throw new InvalidOperationException(msg);
+            throw new InvalidOperationException(msg); // Domain exception equivalent
         }
 
         var oldState = incident.State;
@@ -87,6 +99,7 @@ public class IncidentService
 
     private bool IsValidTransition(IncidentState current, IncidentState next)
     {
+        // Simple valid transitions logic
         if (current == next) return true;
 
         switch (current)
@@ -100,7 +113,7 @@ public class IncidentService
             case IncidentState.Notified:
                 return next == IncidentState.Acknowledged || next == IncidentState.Resolved;
             case IncidentState.NotificationFailed:
-                return next == IncidentState.Notified || next == IncidentState.Resolved;
+                return next == IncidentState.Notified || next == IncidentState.Resolved; // Retry or resolve
             case IncidentState.Acknowledged:
                 return next == IncidentState.Resolved;
             case IncidentState.Resolved:
@@ -114,3 +127,4 @@ public class IncidentService
         }
     }
 }
+
