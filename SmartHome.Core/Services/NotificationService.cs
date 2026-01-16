@@ -19,6 +19,9 @@ public class NotificationService
     {
         var message = new NotificationMessage(incident.IncidentId, $"Alert: {incident.Type} detected!", incident.Type);
         
+        // Define priority order: SMS -> Push -> Email
+        // Note: In real DI, we might injected them in order or select by name.
+        // Here we'll manually order them based on names we know.
         var orderedProviders = new List<string> { "SMS", "Push", "Email" };
         
         var stopwatch = Stopwatch.StartNew();
@@ -32,8 +35,10 @@ public class NotificationService
 
             try
             {
+                // Timeout per provider (e.g. 1s)
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
                 
+                // Bounded retries (e.g. 2 attempts total)
                 int retries = 2;
                 NotificationResult? result = null;
 
@@ -54,7 +59,7 @@ public class NotificationService
                 if (result != null && result.Success)
                 {
                     _auditLog.Append("NotificationSuccess", $"Sent via {channelName}", incident.IncidentId);
-                    return result;
+                    return result; // Stop after first success
                 }
                 
                 _auditLog.Append("NotificationFallback", $"{channelName} failed, falling back...", incident.IncidentId);
@@ -70,3 +75,4 @@ public class NotificationService
         return new NotificationResult(false, "All", "All providers failed", stopwatch.Elapsed);
     }
 }
+

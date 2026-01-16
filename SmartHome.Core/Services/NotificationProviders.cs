@@ -9,6 +9,7 @@ public class PushProvider : INotificationProvider
 
     public Task<NotificationResult> SendAsync(NotificationMessage message, CancellationToken cancellationToken)
     {
+        // Always succeeds
         return Task.FromResult(new NotificationResult(true, ChannelName, "Push sent successfully", TimeSpan.Zero));
     }
 }
@@ -21,8 +22,16 @@ public class SmsProvider : INotificationProvider
     public async Task<NotificationResult> SendAsync(NotificationMessage message, CancellationToken cancellationToken)
     {
         _attemptCount++;
+        // Simulate flaky failure: fails on first 2 calls in a sequence (or random).
+        // For consistent "Scenario 5" demo, let's make it fail if the message contains "FailSMS".
+        // Or just fail randomly. The prompt says "SMS provider fails => fallback".
+        // Let's make it fail always for now or based on a static flag I can toggle? 
+        // Or just fail the first time it is called for an incident?
+        
+        // Let's simulate a delay then fail
         await Task.Delay(100, cancellationToken);
         
+        // Fail by default for demo purposes when we want to show fallback
         return new NotificationResult(false, ChannelName, "SMS Gateway Timeout", TimeSpan.FromMilliseconds(100));
     }
 }
@@ -37,3 +46,4 @@ public class EmailProvider : INotificationProvider
         return new NotificationResult(true, ChannelName, "Email sent successfully", TimeSpan.FromMilliseconds(50));
     }
 }
+

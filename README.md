@@ -61,4 +61,3 @@ Taking screenshots of the console output is recommended for the following sectio
 - **Fault Tolerance**: `NotificationService` implements timeouts, bounded retries, and channel fallback (SMS -> Push -> Email).
 - **Auditability**: `AuditLog` records all critical decisions and failures to an append-only log.
 
-

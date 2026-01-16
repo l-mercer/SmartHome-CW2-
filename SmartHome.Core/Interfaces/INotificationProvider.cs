@@ -8,4 +8,3 @@ public interface INotificationProvider
     string ChannelName { get; }
 }
 
-

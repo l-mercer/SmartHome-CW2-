@@ -7,6 +7,7 @@ namespace SmartHome.Core.Services;
 public class IncidentRepository : IIncidentRepository
 {
     private readonly ConcurrentDictionary<string, Incident> _incidents = new();
+    // For idempotency key lookup (key -> incidentId)
     private readonly ConcurrentDictionary<string, string> _idempotencyIndex = new();
 
     public void Save(Incident incident)
@@ -34,3 +35,4 @@ public class IncidentRepository : IIncidentRepository
         _idempotencyIndex.TryAdd(key, incidentId);
     }
 }
+

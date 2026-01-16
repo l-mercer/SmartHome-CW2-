@@ -9,4 +9,3 @@ public record SensorEvent(
     string Signature
 );
 
-

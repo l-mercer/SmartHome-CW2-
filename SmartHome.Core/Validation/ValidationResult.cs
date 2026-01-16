@@ -10,4 +10,3 @@ public record ValidationResult(
     public static ValidationResult Failure(List<string> errors) => new(false, errors);
 }
 
-

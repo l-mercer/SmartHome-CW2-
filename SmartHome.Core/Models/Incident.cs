@@ -11,4 +11,3 @@ public class Incident
     public DateTimeOffset LastUpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 }
 
-

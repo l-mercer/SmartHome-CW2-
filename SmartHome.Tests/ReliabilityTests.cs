@@ -28,9 +28,11 @@ public class ReliabilityTests
         var store = new DeduplicationStore();
         var id = "duplicate-id";
 
+        // First pass
         Assert.False(store.IsDuplicate(id));
         store.MarkProcessed(id);
 
+        // Second pass
         Assert.True(store.IsDuplicate(id));
     }
 
@@ -57,28 +59,34 @@ public class ReliabilityTests
 
         var result = engine.Evaluate(motion);
 
+        // Expect low confidence / suspected
         Assert.True(result.ConfidenceScore < 1.0);
+        // Depending on logic, it might return "BreakIn" type but with low confidence/ShouldEscalate=false
+        // My logic returns ShouldEscalate = false for single event
         Assert.False(result.ShouldEscalate);
     }
 
     [Fact]
     public async Task NotificationService_ShouldFallback_WhenSmsFails()
     {
+        // Setup
         var audit = new AuditLog();
-        var sms = new MockProvider("SMS", false); 
-        var push = new MockProvider("Push", true); 
+        var sms = new MockProvider("SMS", false); // Fails
+        var push = new MockProvider("Push", true); // Succeeds
         var email = new MockProvider("Email", true);
         
         var service = new NotificationService(new List<INotificationProvider> { sms, push, email }, audit);
         var incident = new Incident { Type = IncidentType.Fire, State = IncidentState.Confirmed };
 
+        // Act
         var result = await service.NotifyAsync(incident);
 
+        // Assert
         Assert.True(result.Success);
-        Assert.Equal("Push", result.Channel); 
-        Assert.Equal(2, sms.Calls); 
+        Assert.Equal("Push", result.Channel); // Should be Push because SMS failed
+        Assert.Equal(2, sms.Calls); // 1 initial + 1 retry
         Assert.Equal(1, push.Calls);
-        Assert.Equal(0, email.Calls); 
+        Assert.Equal(0, email.Calls); // Shouldn't reach email
     }
 
     [Fact]
@@ -91,10 +99,12 @@ public class ReliabilityTests
         var incident = new Incident { State = IncidentState.Confirmed };
         repo.Save(incident);
 
+        // Confirmed -> Detected is invalid (backward step not allowed)
         Assert.Throws<InvalidOperationException>(() => 
             service.TransitionState(incident.IncidentId, IncidentState.Detected));
     }
 
+    // Helper Mock
     class MockProvider : INotificationProvider
     {
         public string ChannelName { get; }
@@ -117,3 +127,4 @@ public class ReliabilityTests
         }
     }
 }
+
